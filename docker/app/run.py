@@ -39,7 +39,7 @@ T0 = time.time()-int(CONF['STABLIZATION'])
 while 1:
 	time.sleep(CONF['INTERVAL'])
 	if CONF['MODE'] != "LEADER":
-		if EXEC("echo -n '0' | nc -4u -w1 10.130.64.229 733") == "0":
+		if EXEC("echo -n '0' | nc -4u -w1 "+CONF['LEADER_NODE']+" 733") == "0":
 			print "Leader node is online, skip"
 			continue
 	T1 = time.time()
