@@ -37,6 +37,11 @@ PORTS = PORTS[:-1]
 print PORTS
 T0 = time.time()-int(CONF['STABLIZATION'])
 while 1:
+	time.sleep(CONF['INTERVAL'])
+	if CONF['MODE'] != "LEADER":
+		if EXEC("echo -n '0' | nc -4u -w1 10.130.64.229 733") == "0":
+			print "Leader node is online, skip"
+			continue
 	T1 = time.time()
 	CONNECTIONS = int(EXEC("docker exec $(docker ps -f NAME=$(docker service ps -f NODE="+CONF['NODE']+" "+CONF['SERVICE']+" --format '{{.Name}}' | head -1) --format '{{.Names}}') netstat -tan | grep -E '"+PORTS+"' | wc -l"))
 	print "Current number of containers: "+str(REPLICATION)+", connections on each: "+str(CONNECTIONS)
@@ -53,7 +58,7 @@ while 1:
 			EXEC("docker service scale "+CONF['SERVICE']+"="+str(REPLICATION))
 			print "Wait 30s for connection to be stablized..."
 			T0 = time.time()
-	time.sleep(CONF['INTERVAL'])
+	
 	
 	
 	
