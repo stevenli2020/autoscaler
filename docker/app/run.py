@@ -26,7 +26,37 @@ with open("/app/config", 'r') as f:
 	CONF = json.loads(f.read())
 print CONF
 thread.start_new_thread(UDP_ECHO,())
+REPLICATION = int(EXEC("docker service ps "+CONF['SERVICE']+" --format '{{.Name}}' | wc -l"))
+# REPLICATION = REPLICATION + 2
+# EXEC("docker service scale "+CONF['SERVICE']+"="+str(REPLICATION))
+# exit()
+PORTS = ""
+for P in CONF['PORTS']:
+	PORTS = PORTS+":"+str(P)+" |"
+PORTS = PORTS[:-1]
+print PORTS
+T0 = time.time()-int(CONF['STABLIZATION'])
 while 1:
-	CONNECTIONS = int(EXEC("docker exec $(docker ps --format '{{.Names}}' | grep '"+CONF['SERVICE']+"' | head -1) netstat -ant | grep -E ':80|:443' | wc -l"))
-	print CONNECTIONS
+	T1 = time.time()
+	CONNECTIONS = int(EXEC("docker exec $(docker ps -f NAME=$(docker service ps -f NODE="+CONF['NODE']+" "+CONF['SERVICE']+" --format '{{.Name}}' | head -1) --format '{{.Names}}') netstat -tan | grep -E '"+PORTS+"' | wc -l"))
+	print "Current number of containers: "+str(REPLICATION)+", connections on each: "+str(CONNECTIONS)
+	if T1 - T0 > int(CONF['STABLIZATION']):
+		if CONNECTIONS > CONF['CONN_THRESHOLD_H']:
+			REPLICATION = REPLICATION + 2
+			print "Scale up service '"+CONF['SERVICE']+"' by 2, REPLICATION="+str(REPLICATION)
+			EXEC("docker service scale "+CONF['SERVICE']+"="+str(REPLICATION))
+			print "Wait 30s for connection to be stablized..."
+			T0 = time.time()			
+		elif CONNECTIONS < CONF['CONN_THRESHOLD_L'] and REPLICATION != CONF['BASE_REPLICATION']:
+			REPLICATION = REPLICATION - 2
+			print "Scale down service '"+CONF['SERVICE']+"' by 2, REPLICATION="+str(REPLICATION)
+			EXEC("docker service scale "+CONF['SERVICE']+"="+str(REPLICATION))
+			print "Wait 30s for connection to be stablized..."
+			T0 = time.time()
 	time.sleep(CONF['INTERVAL'])
+	
+	
+	
+	
+	
+	
