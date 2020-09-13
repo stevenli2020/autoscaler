@@ -78,7 +78,7 @@ def CHECK_LEADER():
 	global LEADER_ONLINE, CONF
 	while 1: 
 		print "Check if leader node is online"
-		if EXEC("curl "+CONF['LEADER_NODE']+":733/hello").strip() == "Yes?":
+		if EXEC("curl -s "+CONF['LEADER_NODE']+":733/hello").strip() == "Yes?":
 			LEADER_ONLINE = True
 			print "- leader node is online"
 		else: 
