@@ -88,7 +88,7 @@ def CHECK_LEADER():
 	pass
 #=====================================================
 
-with open("/app/config", 'r') as f:
+with open("/conf/config", 'r') as f:
 	CONF = json.loads(f.read())
 # print CONF
 # thread.start_new_thread(UDP_ECHO,())
