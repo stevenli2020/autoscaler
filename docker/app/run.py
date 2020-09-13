@@ -1,5 +1,8 @@
 #!/usr/bin/python
 import os, string, random, time, socket, thread, sys, commands, json
+from bottle import route, run, template
+
+LEADER_ONLINE = True
 
 def UDP_ECHO():
 	while 1:
@@ -7,7 +10,7 @@ def UDP_ECHO():
 			sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 			server = ('0.0.0.0', 733)
 			sock.bind(server)
-			print("Listening on 0.0.0.0:733")
+			print("Echo service started on 0.0.0.0:733")
 			while True:
 				payload, client_address = sock.recvfrom(8)
 				print("Echoing data back to " + str(client_address))
@@ -16,16 +19,84 @@ def UDP_ECHO():
 			print("Service stopped")
 			time.sleep(2)
 
+def API_SERVER():
+	global CONF
+	while 1:
+		try:
+			@route('/hello')
+			@route('/hello/')
+			def hello():
+				return 'Yes?\n'					
+			@route('/scale/<svc>/<n>')
+			def scale(svc,n):
+				try:
+					EXEC("docker service scale "+svc+"="+str(n))
+					return 'OK\n'			
+				except:
+					return 'NAK\n'
+			@route('/scale/<svc>')
+			@route('/scale/<svc>/')
+			def get_scale(svc):
+				try:
+					return EXEC("docker service ps "+svc+" --format '{{.Name}}' | wc -l")+"\n"		
+				except:
+					return "NAK\n"
+			@route('/scaleup/<svc>/<n>/')
+			@route('/scaleup/<svc>/<n>')
+			def scaleup(svc, n):
+				try:      
+					N = int(n)+int(EXEC("docker service ps "+svc+" --format '{{.Name}}' | wc -l"))
+					EXEC("docker service scale "+svc+"="+str(N))
+					return str(N)+"\n"
+				except:
+					return "NAK\n"
+			@route('/scaledn/<svc>/<n>/')
+			@route('/scaledn/<svc>/<n>')
+			def scaledn(svc, n):
+				try:
+					N = int(EXEC("docker service ps "+svc+" --format '{{.Name}}' | wc -l")) - int(n)
+					if N < int(CONF['BASE_REPLICATION']):
+						return "Smaller than minimum number of replications\n"
+					EXEC("docker service scale "+svc+"="+str(N))
+					return str(N)+"\n"
+				except:
+					return "NAK\n"					
+					
+			print("API service started on 0.0.0.0:734")
+			run(host='0.0.0.0', port=734)
+
+			
+		except:
+			print("API service stopped")
+			time.sleep(2)			
+			
 def EXEC(CMD):
 	ERR_SUCCESS,OUTPUT = commands.getstatusoutput(CMD)
 	return OUTPUT
 
+def CHECK_LEADER():
+	global LEADER_ONLINE, CONF
+	while 1: 
+		print "Check if leader node is online"
+		if EXEC("echo -n '0' | nc -u -w1 "+CONF['LEADER_NODE']+" 733") == "0":
+			LEADER_ONLINE = True
+			print "- leader node is online"
+		else: 
+			LEADER_ONLINE = False
+			print "- leader node is offline"
+		time.sleep(30)
+	pass
 #=====================================================
 
 with open("/app/config", 'r') as f:
 	CONF = json.loads(f.read())
-print CONF
+# print CONF
 thread.start_new_thread(UDP_ECHO,())
+thread.start_new_thread(API_SERVER,())
+
+if CONF['MODE'] != "LEADER":
+	thread.start_new_thread(CHECK_LEADER,())
+	
 REPLICATION = int(EXEC("docker service ps "+CONF['SERVICE']+" --format '{{.Name}}' | wc -l"))
 # REPLICATION = REPLICATION + 2
 # EXEC("docker service scale "+CONF['SERVICE']+"="+str(REPLICATION))
@@ -34,12 +105,12 @@ PORTS = ""
 for P in CONF['PORTS']:
 	PORTS = PORTS+":"+str(P)+" |"
 PORTS = PORTS[:-1]
-print PORTS
+# print PORTS
 T0 = time.time()-int(CONF['STABLIZATION'])
 while 1:
 	time.sleep(CONF['INTERVAL'])
-	if CONF['MODE'] != "LEADER":
-		if EXEC("echo -n '0' | nc -4u -w1 "+CONF['LEADER_NODE']+" 733") == "0":
+	if CONF['MODE'] != "LEADER": 
+		if LEADER_ONLINE == True:
 			print "Leader node is online, skip"
 			continue
 	T1 = time.time()
