@@ -4,6 +4,7 @@
 	"BASE_REPLICATION": 2,
 	"NODE": "sw1",
 	"SERVICE": "web",
+	"AUTOSCALE": false,
 	"PORTS": [
 		443,
 		80

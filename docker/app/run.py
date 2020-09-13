@@ -62,8 +62,8 @@ def API_SERVER():
 				except:
 					return "NAK\n"					
 					
-			print("API service started on 0.0.0.0:734")
-			run(host='0.0.0.0', port=734)
+			print("API service started on 0.0.0.0:733")
+			run(host='0.0.0.0', port=733)
 
 			
 		except:
@@ -91,7 +91,7 @@ def CHECK_LEADER():
 with open("/app/config", 'r') as f:
 	CONF = json.loads(f.read())
 # print CONF
-thread.start_new_thread(UDP_ECHO,())
+# thread.start_new_thread(UDP_ECHO,())
 thread.start_new_thread(API_SERVER,())
 
 if CONF['MODE'] != "LEADER":
@@ -113,6 +113,8 @@ while 1:
 		if LEADER_ONLINE == True:
 			print "Leader node is online, skip"
 			continue
+	if CONF['AUTOSCALE'] != True:
+		continue
 	T1 = time.time()
 	CONNECTIONS = int(EXEC("docker exec $(docker ps -f NAME=$(docker service ps -f NODE="+CONF['NODE']+" "+CONF['SERVICE']+" --format '{{.Name}}' | head -1) --format '{{.Names}}') netstat -tan | grep -E '"+PORTS+"' | wc -l"))
 	print "Current number of containers: "+str(REPLICATION)+", connections on each: "+str(CONNECTIONS)
