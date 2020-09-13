@@ -4,13 +4,13 @@
 	"BASE_REPLICATION": 2,
 	"NODE": "sw1",
 	"SERVICE": "web",
-	"AUTOSCALE": false,
+	"AUTOSCALE": true,
 	"PORTS": [
 		443,
 		80
 	],
 	"CONN_THRESHOLD_H": 100,
 	"CONN_THRESHOLD_L": 20,
-	"INTERVAL": 5,
+	"INTERVAL": 10,
 	"STABLIZATION": 30
 }
