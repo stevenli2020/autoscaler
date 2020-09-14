@@ -1,6 +1,5 @@
 #!/usr/bin/python
 import os, string, random, time, socket, thread, sys, commands, json
-from bottle import route, run, template
 
 LEADER_ONLINE = True
 
@@ -19,56 +18,6 @@ def UDP_ECHO():
 			print("Service stopped")
 			time.sleep(2)
 
-def API_SERVER():
-	global CONF
-	while 1:
-		try:
-			@route('/hello')
-			@route('/hello/')
-			def hello():
-				return 'Yes?\n'					
-			@route('/scale/<svc>/<n>')
-			def scale(svc,n):
-				try:
-					EXEC("docker service scale "+svc+"="+str(n))
-					return 'OK\n'			
-				except:
-					return 'NAK\n'
-			@route('/scale/<svc>')
-			@route('/scale/<svc>/')
-			def get_scale(svc):
-				try:
-					return EXEC("docker service ps "+svc+" --format '{{.Name}}' | wc -l")+"\n"		
-				except:
-					return "NAK\n"
-			@route('/scaleup/<svc>/<n>/')
-			@route('/scaleup/<svc>/<n>')
-			def scaleup(svc, n):
-				try:      
-					N = int(n)+int(EXEC("docker service ps "+svc+" --format '{{.Name}}' | wc -l"))
-					EXEC("docker service scale "+svc+"="+str(N))
-					return str(N)+"\n"
-				except:
-					return "NAK\n"
-			@route('/scaledn/<svc>/<n>/')
-			@route('/scaledn/<svc>/<n>')
-			def scaledn(svc, n):
-				try:
-					N = int(EXEC("docker service ps "+svc+" --format '{{.Name}}' | wc -l")) - int(n)
-					if N < int(CONF['BASE_REPLICATION']):
-						return "Smaller than minimum number of replications\n"
-					EXEC("docker service scale "+svc+"="+str(N))
-					return str(N)+"\n"
-				except:
-					return "NAK\n"					
-					
-			print("API service started on 0.0.0.0:733")
-			run(host='0.0.0.0', port=733)
-
-			
-		except:
-			print("API service stopped")
-			time.sleep(2)			
 			
 def EXEC(CMD):
 	ERR_SUCCESS,OUTPUT = commands.getstatusoutput(CMD)
@@ -88,9 +37,10 @@ def CHECK_LEADER():
 	pass
 #=====================================================
 
-with open("/conf/config", 'r') as f:
+with open("/etc/autoscaler/config", 'r') as f:
 	CONF = json.loads(f.read())
-# print CONF
+print CONF
+exit()
 # thread.start_new_thread(UDP_ECHO,())
 thread.start_new_thread(API_SERVER,())
 
