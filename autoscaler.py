@@ -43,7 +43,7 @@ def CHECK_LEADER():
 	while 1: 
 		print "Check if leader node is online"
 		try:
-			if EXEC("echo 'ALOHA' | nc -w 1 -u 10.130.64.229 733").strip() == "ALOHA":
+			if EXEC("echo 'ALOHA' | nc -w 1 -u "+CONF['LEADER_NODE']+" 733").strip() == "ALOHA":
 				LEADER_ONLINE = True
 				print "- leader node is online"
 			else: 
@@ -59,8 +59,12 @@ def SERVICE_SCALER(SERVICE):
 	while 1:
 		time.sleep(SERVICE['SAMPLE_INTERVAL'])
 		if (CONF['NODE_MODE'] != "LEADER") and LEADER_ONLINE:
-			continue			
-		SERVICE_REPLICAS = int(EXEC("docker service ps "+SVC['SERVICE_NAME']+" -f desired-state=Running -q | wc -l"))
+			continue
+		try:
+			SERVICE_REPLICAS = int(EXEC("docker service ps "+SVC['SERVICE_NAME']+" -f desired-state=Running -q | wc -l"))
+		except:
+			print "Service '"+SVC['SERVICE_NAME']+"' not found"
+			continue
 		try:
 			ESTABLISHED_CONNECTIONS = int(EXEC("nsenter -t $(docker inspect -f '{{.State.Pid}}' $(docker ps --format {{.Names}} | grep "+SERVICE['SERVICE_NAME']+" | head -1)) -n netstat -pant | grep ESTA | wc -l"))
 		except:
