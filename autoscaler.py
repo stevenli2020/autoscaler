@@ -42,7 +42,7 @@ def CHECK_LEADER():
 	global LEADER_ONLINE, CONF
 	while 1: 
 		print "Check if leader node is online"
-		if EXEC("curl -s "+CONF['LEADER_NODE']+":733/hello").strip() == "Yes?":
+		if EXEC("echo 'ALOHA' | nc -w 1 -u 10.130.64.229 733").strip() == "ALOHA":
 			LEADER_ONLINE = True
 			print "- leader node is online"
 		else: 
@@ -107,18 +107,17 @@ def SERVICE_SCALE_DN(SVC, REP):
 
 with open("/etc/autoscaler/config", 'r') as f:
 	CONF = json.loads(f.read())
-
-thread.start_new_thread(UDP_ECHO,())
-thread.start_new_thread(scaler,())
-
-if CONF['NODE_MODE'] != "LEADER":
+	
+if CONF["NODE_MODE"] == "LEADER":
+	thread.start_new_thread(UDP_ECHO,())
+else:
 	thread.start_new_thread(CHECK_LEADER,())
 
 for SVC in CONF["AUTOSCALE"]:
 	print SVC['SERVICE_NAME']
 	thread.start_new_thread(SERVICE_SCALER,(SVC,))
 	
-	
+thread.start_new_thread(scaler,())	
 while 1:
 	time.sleep(2)
 	
