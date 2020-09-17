@@ -42,12 +42,15 @@ def CHECK_LEADER():
 	global LEADER_ONLINE, CONF
 	while 1: 
 		print "Check if leader node is online"
-		if EXEC("echo 'ALOHA' | nc -w 1 -u 10.130.64.229 733").strip() == "ALOHA":
-			LEADER_ONLINE = True
-			print "- leader node is online"
-		else: 
-			LEADER_ONLINE = False
-			print "- leader node is offline"
+		try:
+			if EXEC("echo 'ALOHA' | nc -w 1 -u 10.130.64.229 733").strip() == "ALOHA":
+				LEADER_ONLINE = True
+				print "- leader node is online"
+			else: 
+				LEADER_ONLINE = False
+				print "- leader node is offline"
+		except:
+			pass
 		time.sleep(30)
 
 def SERVICE_SCALER(SERVICE):
